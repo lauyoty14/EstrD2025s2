@@ -33,8 +33,8 @@ las siguientes funciones
 data Dir = Norte | Sur | Este | Oeste deriving (Show, Eq)
 
 --a) Dada una dirección devuelve su opuesta.
-opuesta :: Dir -> Dir
-opuesta d = 
+opuesto :: Dir -> Dir
+opuesto d = 
     case d of
         Norte -> Sur
         Sur   -> Norte
@@ -98,17 +98,17 @@ c) Dado dos días de semana, indica si el primero viene después que el segundo.
 la calidad de la solución respecto de la cantidad de casos analizados (entre los casos
 analizados en esta y cualquier subtarea, deberían ser no más de 9 casos).
 -}
-diaSiguiente :: DiaDeSemana -> DiaDeSemana
-diaSiguiente Lunes = Martes
-diaSiguiente Martes = Miercoles
-diaSiguiente Miercoles = Jueves
-diaSiguiente Jueves = Viernes
-diaSiguiente Viernes = Sabado
-diaSiguiente Sabado = Domingo
-diaSiguiente Domingo = Lunes
+numeroDia :: DiaDeSemana -> Int
+numeroDia Lunes     = 1
+numeroDia Martes    = 2
+numeroDia Miercoles = 3
+numeroDia Jueves    = 4
+numeroDia Viernes   = 5
+numeroDia Sabado    = 6
+numeroDia Domingo   = 7
 
 vieneDespues :: DiaDeSemana -> DiaDeSemana -> Bool
-vieneDespues d1 d2 = d1 == diaSiguiente d2
+vieneDespues d1 d2 = numeroDia d1 > numeroDia d2
 
 --d) Dado un día de la semana indica si no es ni el primer ni el ultimo dia.
 estaEnElMedio :: DiaDeSemana -> Bool
@@ -122,9 +122,9 @@ ya definidas en Haskell):
 
 --a) Dado un booleano, si es True devuelve False, y si es False devuelve True. En Haskell ya está 
 --definida como not.
-not' :: Bool -> Bool
-not' False = True
-not' _ = False
+negar :: Bool -> Bool
+negar False = True
+negar _ = False
 
 {-
 b) Dados dos booleanos, si el primero es True y el segundo es False, devuelve False, sino
@@ -207,9 +207,13 @@ superaA (Pokemon t _) (Pokemon t2 _) =
 esDeTipo :: TipoDePokemon -> Pokemon -> Bool
 esDeTipo t (Pokemon t2 _) = t == t2
 
+unoSiEsDelTipo :: TipoDePokemon -> Pokemon -> Int
+unoSiEsDelTipo tipo pokemon = if esDeTipo tipo pokemon then 1 else 0
+
 --Devuelve la cantidad de Pokémon de determinado tipo que posee el entrenador.
 cantidadDePokemonDe :: TipoDePokemon -> Entrenador -> Int
-cantidadDePokemonDe tipo (Entrenador _ p1 p2) = if esDeTipo tipo p1 then 1 else 0 + if esDeTipo tipo p2 then 1 else 0
+cantidadDePokemonDe tipo (Entrenador _ p1 p2) = 
+    unoSiEsDelTipo tipo p1 + unoSiEsDelTipo tipo p2
 
 --Dado un par de entrenadores, devuelve a sus Pokémon en una lista
 juntarPokemon :: (Entrenador, Entrenador) -> [Pokemon]
