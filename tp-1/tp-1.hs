@@ -1,3 +1,4 @@
+import GHC.RTS.Flags (TickyFlags(TickyFlags))
 -- Dado un número devuelve su sucesor
 sucesor :: Int -> Int
 sucesor n = n + 1
@@ -73,7 +74,7 @@ Viernes, Sabado y Domingo. Supongamos que el primer día de la semana es lunes, 
 es domingo. Luego implementar las siguientes funciones:
 -}
 data DiaDeSemana = Lunes | Martes | Miercoles | Jueves | Viernes | Sabado | Domingo
-    deriving (Show, Eq, Ord)
+    deriving (Show)
 
 {- 
 a) Devuelve un par donde la primera componente es el primer día de la semana, y la
@@ -111,8 +112,16 @@ vieneDespues :: DiaDeSemana -> DiaDeSemana -> Bool
 vieneDespues d1 d2 = numeroDia d1 > numeroDia d2
 
 --d) Dado un día de la semana indica si no es ni el primer ni el ultimo dia.
+esPrimerDia :: DiaDeSemana -> Bool
+esPrimerDia Lunes = True
+esPrimerDia _ = False
+
+esUltimoDia :: DiaDeSemana -> Bool
+esUltimoDia Domingo = True
+esUltimoDia _ = False
+
 estaEnElMedio :: DiaDeSemana -> Bool
-estaEnElMedio d = d /= primerDia && d /= ultimoDia
+estaEnElMedio d = not (esPrimerDia d) && not (esUltimoDia d)
                      
 {-
 Los booleanos también son un tipo de enumerativo. Un booleano es True o False. Defina
@@ -142,7 +151,7 @@ Esta función NO debe realizar doble pattern matching.
 En Haskell ya está definida como \&\&.
 -}
 yTambien :: Bool -> Bool -> Bool
-yTambien True True = True
+yTambien True b = b
 yTambien _ _ = False
 
 {-
@@ -152,14 +161,13 @@ En Haskell ya está definida como ||.
 -}
 oBien :: Bool -> Bool -> Bool
 oBien True _ = True
-oBien _ True = True
-oBien _ _ = False
+oBien _ b = b
 
 {-
 Definir el tipo de dato Persona, como un nombre y la edad de la persona. Realizar las
 siguientes funciones:
 -}
-data Persona = P String Int deriving (Show, Eq)
+data Persona = P String Int deriving (Show)
 
 --Dada una persona devuelve su nombre.
 nombre :: Persona -> String
@@ -179,36 +187,40 @@ cambioDeNombre nombre (P n e) = P nombre e
 
 --Dadas dos personas indica si la primera es mayor que la segunda
 esMayorQueLaOtra :: Persona -> Persona -> Bool
-esMayorQueLaOtra (P n1 e1) (P n2 e2) = e1 > e2
+esMayorQueLaOtra p1 p2 = edad p1 > edad p2
 
 --Dadas dos personas devuelve a la persona que sea mayor
 laQueEsMayor :: Persona -> Persona -> Persona
-laQueEsMayor (P n1 e1) (P n2 e2) = if e1 > e2 then P n1 e1 else P n2 e2
+laQueEsMayor p1 p2 = if esMayorQueLaOtra p1 p2 then p1 else p2
 
 {-
 Definir los tipos de datos Pokemon, como un TipoDePokemon (agua, fuego o planta) y un
 porcentaje de energía; y Entrenador, como un nombre y dos Pokémon. Luego definir las
 siguientes funciones:
 -}
-data TipoDePokemon = Agua | Fuego | Planta deriving (Show, Eq)
-data Pokemon = Pokemon TipoDePokemon Int deriving (Show, Eq)
-data Entrenador = Entrenador String Pokemon Pokemon deriving (Show, Eq)
+data TipoDePokemon = Agua | Fuego | Planta deriving (Show)
+data Pokemon = Pokemon TipoDePokemon Int deriving (Show)
+data Entrenador = Entrenador String Pokemon Pokemon deriving (Show)
 
 --Dados dos Pokémon indica si el primero, en base al tipo, es superior al segundo. Agua
 --supera a fuego, fuego a planta y planta a agua. Y cualquier otro caso es falso.
-superaA :: Pokemon -> Pokemon -> Bool
-superaA (Pokemon t _) (Pokemon t2 _) =
-    case (t, t2) of
-        (Agua, Fuego) -> True
-        (Fuego, Planta) -> True
-        (Planta, Agua) -> True
-        _ -> False
+tipoSuperaATipo :: TipoDePokemon -> TipoDePokemon -> Bool
+tipoSuperaATipo Agua Fuego = True
+tipoSuperaATipo Fuego Planta = True
+tipoSuperaATipo Planta Agua = True
+tipoSuperaATipo _ _ = False
 
-esDeTipo :: TipoDePokemon -> Pokemon -> Bool
-esDeTipo t (Pokemon t2 _) = t == t2
+superaA :: Pokemon -> Pokemon -> Bool
+superaA (Pokemon t _) (Pokemon t2 _) = tipoSuperaATipo t t2
+  
+tieneMismoTipoQue :: TipoDePokemon -> Pokemon -> Bool
+tieneMismoTipoQue Agua   (Pokemon Agua   _) = True
+tieneMismoTipoQue Fuego  (Pokemon Fuego  _) = True
+tieneMismoTipoQue Planta (Pokemon Planta _) = True
+tieneMismoTipoQue _      _                 = False
 
 unoSiEsDelTipo :: TipoDePokemon -> Pokemon -> Int
-unoSiEsDelTipo tipo pokemon = if esDeTipo tipo pokemon then 1 else 0
+unoSiEsDelTipo tipo pokemon = if tieneMismoTipoQue tipo pokemon then 1 else 0
 
 --Devuelve la cantidad de Pokémon de determinado tipo que posee el entrenador.
 cantidadDePokemonDe :: TipoDePokemon -> Entrenador -> Int
@@ -216,8 +228,11 @@ cantidadDePokemonDe tipo (Entrenador _ p1 p2) =
     unoSiEsDelTipo tipo p1 + unoSiEsDelTipo tipo p2
 
 --Dado un par de entrenadores, devuelve a sus Pokémon en una lista
+pokemones :: (Entrenador -> [Pokemon])
+pokemones (Entrenador _ p1 p2) = [p1, p2]
+
 juntarPokemon :: (Entrenador, Entrenador) -> [Pokemon]
-juntarPokemon (Entrenador _ p1 p2, Entrenador _ p3 p4) = [p1, p2, p3, p4]
+juntarPokemon (e1, e2) = pokemones e1 ++ pokemones e2
 
 --a)Dado un elemento de algún tipo devuelve ese mismo elemento.
 loMismo :: a -> a
@@ -249,15 +264,18 @@ estaVacia (_:_) = False
 --Definida en Haskell como head.
 elPrimero :: [a] -> a
 elPrimero (x:_) = x
+elPrimero [] = error "No hay elementos en la lista"
 
 --Dada una lista devuelve esa lista menos el primer elemento.
 --Definida en Haskell como tail.
 --Nota: tener en cuenta que el constructor de listas es :
 sinElPrimero :: [a] -> [a]
 sinElPrimero (_:xs) = xs
+sinElPrimero [] = error "No hay elementos en la lista"
 
 --Dada una lista devuelve un par, donde la primera componente es el primer elemento de la
 --lista, y la segunda componente es esa lista pero sin el primero.
 splitHead :: [a] -> (a, [a])
-splitHead (x:xs) = (x, xs)
+splitHead [a] = (elPrimero [a], sinElPrimero [a])
+splitHead [] = error "No hay elementos en la lista"
 
