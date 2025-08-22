@@ -210,17 +210,20 @@ tipoSuperaATipo Fuego Planta = True
 tipoSuperaATipo Planta Agua = True
 tipoSuperaATipo _ _ = False
 
+tipoDePokemon :: Pokemon -> TipoDePokemon
+tipoDePokemon (Pokemon tipo _) = tipo
+
 superaA :: Pokemon -> Pokemon -> Bool
-superaA (Pokemon t _) (Pokemon t2 _) = tipoSuperaATipo t t2
+superaA pk1 pk2 = tipoSuperaATipo (tipoDePokemon pk1) (tipoDePokemon pk2)
   
-tieneMismoTipoQue :: TipoDePokemon -> Pokemon -> Bool
-tieneMismoTipoQue Agua   (Pokemon Agua   _) = True
-tieneMismoTipoQue Fuego  (Pokemon Fuego  _) = True
-tieneMismoTipoQue Planta (Pokemon Planta _) = True
-tieneMismoTipoQue _      _                 = False
+tieneMismoTipoQue :: TipoDePokemon -> TipoDePokemon -> Bool
+tieneMismoTipoQue Agua Agua = True
+tieneMismoTipoQue Fuego Fuego = True
+tieneMismoTipoQue Planta Planta = True
+tieneMismoTipoQue _ _ = False
 
 unoSiEsDelTipo :: TipoDePokemon -> Pokemon -> Int
-unoSiEsDelTipo tipo pokemon = if tieneMismoTipoQue tipo pokemon then 1 else 0
+unoSiEsDelTipo tipo (Pokemon t _) = if tieneMismoTipoQue tipo t then 1 else 0
 
 --Devuelve la cantidad de Pokémon de determinado tipo que posee el entrenador.
 cantidadDePokemonDe :: TipoDePokemon -> Entrenador -> Int
@@ -228,7 +231,7 @@ cantidadDePokemonDe tipo (Entrenador _ p1 p2) =
     unoSiEsDelTipo tipo p1 + unoSiEsDelTipo tipo p2
 
 --Dado un par de entrenadores, devuelve a sus Pokémon en una lista
-pokemones :: (Entrenador -> [Pokemon])
+pokemones :: Entrenador -> [Pokemon]
 pokemones (Entrenador _ p1 p2) = [p1, p2]
 
 juntarPokemon :: (Entrenador, Entrenador) -> [Pokemon]
@@ -276,6 +279,5 @@ sinElPrimero [] = error "No hay elementos en la lista"
 --Dada una lista devuelve un par, donde la primera componente es el primer elemento de la
 --lista, y la segunda componente es esa lista pero sin el primero.
 splitHead :: [a] -> (a, [a])
-splitHead [a] = (elPrimero [a], sinElPrimero [a])
 splitHead [] = error "No hay elementos en la lista"
-
+splitHead xs = (elPrimero xs, sinElPrimero xs)
