@@ -216,14 +216,14 @@ tipoDePokemon (Pokemon tipo _) = tipo
 superaA :: Pokemon -> Pokemon -> Bool
 superaA pk1 pk2 = tipoSuperaATipo (tipoDePokemon pk1) (tipoDePokemon pk2)
   
-tieneMismoTipoQue :: TipoDePokemon -> TipoDePokemon -> Bool
-tieneMismoTipoQue Agua Agua = True
-tieneMismoTipoQue Fuego Fuego = True
-tieneMismoTipoQue Planta Planta = True
-tieneMismoTipoQue _ _ = False
+tipoEsIgualATipo :: TipoDePokemon -> TipoDePokemon -> Bool
+tipoEsIgualATipo Agua Agua = True
+tipoEsIgualATipo Fuego Fuego = True
+tipoEsIgualATipo Planta Planta = True
+tipoEsIgualATipo _ _ = False
 
 unoSiEsDelTipo :: TipoDePokemon -> Pokemon -> Int
-unoSiEsDelTipo tipo (Pokemon t _) = if tieneMismoTipoQue tipo t then 1 else 0
+unoSiEsDelTipo tipo (Pokemon t _) = if tipoEsIgualATipo tipo t then 1 else 0
 
 --Devuelve la cantidad de Pokémon de determinado tipo que posee el entrenador.
 cantidadDePokemonDe :: TipoDePokemon -> Entrenador -> Int
