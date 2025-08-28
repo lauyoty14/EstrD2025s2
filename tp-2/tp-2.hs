@@ -14,6 +14,7 @@ longitud (x:xs) = 1 + longitud xs
 --3)
 sucesores :: [Int] -> [Int]
 sucesores [] = []
+sucesores (x:xs) = (x+1) : sucesores xs
 --4)
 yTambien :: Bool -> Bool -> Bool
 yTambien True b = b
@@ -119,10 +120,10 @@ sinLosPrimeros n [] = []
 sinLosPrimeros n (x:xs) = sinLosPrimeros (n-1) xs
 
 --- 3 --- 
-data Persona = Persona String Int
+data Persona = Persona String Int deriving Show
 
 --1)
-esMayorA :: Persona -> Int -> Bool
+esMayorA :: Persona -> Int -> Bool 
 esMayorA (Persona _ edad) n = edad > n
 
 mayoresA :: Int -> [Persona] -> [Persona]
@@ -174,6 +175,8 @@ cantPokemonDeTipo t (x:xs) = unoSiEsDelTipo t x + cantPokemonDeTipo t xs
 cantPokemonDe :: TipoDePokemon -> Entrenador -> Int
 cantPokemonDe t (ConsEntrenador _ ps) = cantPokemonDeTipo t ps
 -------------------------------------------------------------------------------------------------------
+tipoDePokemon :: Pokemon -> TipoDePokemon
+tipoDePokemon (ConsPokemon tipo _) = tipo
 
 tipoSuperaATipo :: TipoDePokemon -> TipoDePokemon -> Bool
 tipoSuperaATipo Agua Fuego = True
@@ -181,7 +184,109 @@ tipoSuperaATipo Fuego Planta = True
 tipoSuperaATipo Planta Agua = True
 tipoSuperaATipo _ _ = False
 
+superaA :: Pokemon -> Pokemon -> Bool
+superaA pk1 pk2 = tipoSuperaATipo (tipoDePokemon pk1) (tipoDePokemon pk2)
+
 cuantosDeTipo_De_LeGananATodosLosDe_ :: TipoDePokemon -> Entrenador -> Entrenador -> Int
-cuantosDeTipo_De_LeGananATodosLosDe_ t (ConsEntrenador _ []) (ConsEntrenador _ _) = 0
-cuantosDeTipo_De_LeGananATodosLosDe_ t (ConsEntrenador _ _) (ConsEntrenador _ []) = 0
-cuantosDeTipo_De_LeGananATodosLosDe_ t (ConsEntrenador _ ps) (ConsEntrenador _ ps2) = 
+cuantosDeTipo_De_LeGananATodosLosDe_ t (ConsEntrenador _ ps) (ConsEntrenador _ ps2) =
+    cantPokemonDe_LeGananATodosLosDe_ (todosLosDe_De_ t ps) ps2
+
+cantPokemonDe_LeGananATodosLosDe_ :: [Pokemon] -> [Pokemon] -> Int
+cantPokemonDe_LeGananATodosLosDe_ [] _ = 0
+cantPokemonDe_LeGananATodosLosDe_ (p:ps) ps2 = if leGanaATodosLosDe_ p ps2
+                                            then 1 + cantPokemonDe_LeGananATodosLosDe_ ps ps2
+                                            else cantPokemonDe_LeGananATodosLosDe_ ps ps2
+
+leGanaATodosLosDe_ :: Pokemon -> [Pokemon] -> Bool
+leGanaATodosLosDe_ p [] = True
+leGanaATodosLosDe_ p (x:xs) = superaA p x && leGanaATodosLosDe_ p xs
+
+todosLosDe_De_ :: TipoDePokemon -> [Pokemon] -> [Pokemon]
+todosLosDe_De_ t [] = []
+todosLosDe_De_ t (x:xs) = if tipoEsIgualATipo (tipoDePokemon x) t
+                          then x : todosLosDe_De_ t xs
+                          else todosLosDe_De_ t xs
+-------------------------------------------------------------------------------------------------------
+esMaestroPokemon :: Entrenador -> Bool
+esMaestroPokemon (ConsEntrenador _ ps) = tieneAlMenosUnPokemonDeCadaTipo ps
+
+tieneAlMenosUnPokemonDeCadaTipo :: [Pokemon] -> Bool
+tieneAlMenosUnPokemonDeCadaTipo [] = False
+tieneAlMenosUnPokemonDeCadaTipo ps = cantPokemonDeTipo Agua ps > 0 &&
+                                     cantPokemonDeTipo Fuego ps > 0 &&
+                                     cantPokemonDeTipo Planta ps > 0
+
+--------------------------------------------------------------------------------------------------------
+--3)
+
+data Seniority = Junior | SemiSenior | Senior
+data Proyecto = ConsProyecto String deriving Show
+data Rol = Developer Seniority Proyecto | Management Seniority Proyecto
+data Empresa = ConsEmpresa [Rol]
+
+proyectos :: Empresa -> [Proyecto]
+proyectos (ConsEmpresa xs) = proyectosSinRepetir (proyectosDeLosRoles xs)
+
+proyectosDeLosRoles :: [Rol] -> [Proyecto]
+proyectosDeLosRoles [] = []
+proyectosDeLosRoles (x:xs) = proyectosDeElRol x ++ proyectosDeLosRoles xs
+
+proyectosDeElRol :: Rol -> [Proyecto]
+proyectosDeElRol (Developer _ p) = [p]
+proyectosDeElRol (Management _ p) = [p] 
+
+proyectosSinRepetir :: [Proyecto] -> [Proyecto]
+proyectosSinRepetir [] = []
+proyectosSinRepetir (x:xs) = if proyectoPerteneceAlaLista x xs
+                             then proyectosSinRepetir xs
+                             else x : proyectosSinRepetir xs
+
+proyectoPerteneceAlaLista :: Proyecto -> [Proyecto] -> Bool
+proyectoPerteneceAlaLista _ [] = False 
+proyectoPerteneceAlaLista p (ConsProyecto m : xs) = nombreDelProyecto p == m || proyectoPerteneceAlaLista p xs  
+
+nombreDelProyecto :: Proyecto -> String
+nombreDelProyecto (ConsProyecto m) = m
+
+--------------------------------------------------------------------------------------------------------
+
+losDevSenior :: Empresa -> [Proyecto] -> Int
+losDevSenior (ConsEmpresa rs) ps = cantDevSeniorQueTrabajanEnLosProyectos rs ps
+
+cantDevSeniorQueTrabajanEnLosProyectos :: [Rol] -> [Proyecto] -> Int
+cantDevSeniorQueTrabajanEnLosProyectos [] _ = 0
+cantDevSeniorQueTrabajanEnLosProyectos (r:rs) ps = if esDevSenior r && trabajaEnAlgunoDeLosProyectos r ps
+                                     then 1 + cantDevSeniorQueTrabajanEnLosProyectos rs ps
+                                     else cantDevSeniorQueTrabajanEnLosProyectos rs ps
+
+esDevSenior :: Rol -> Bool
+esDevSenior (Developer Senior _) = True
+esDevSenior _ = False
+
+trabajaEnAlgunoDeLosProyectos :: Rol -> [Proyecto] -> Bool
+trabajaEnAlgunoDeLosProyectos (Developer _ p) ps = proyectoPerteneceAlaLista p ps
+trabajaEnAlgunoDeLosProyectos (Management _ p) ps = proyectoPerteneceAlaLista p ps
+
+--------------------------------------------------------------------------------------------------------
+cantQueTrabajanEn :: [Proyecto] -> Empresa -> Int
+cantQueTrabajanEn [] (ConsEmpresa rs) = 0
+cantQueTrabajanEn ps (ConsEmpresa rs) = cantDeLosQueTrabajanEn ps rs
+
+cantDeLosQueTrabajanEn :: [Proyecto] -> [Rol] -> Int
+cantDeLosQueTrabajanEn _ [] = 0
+cantDeLosQueTrabajanEn ps (r:rs) = if trabajaEnAlgunoDeLosProyectos r ps
+                                   then 1 + cantDeLosQueTrabajanEn ps rs
+                                   else cantDeLosQueTrabajanEn ps rs
+
+--------------------------------------------------------------------------------------------------------
+
+asignadosPorProyecto :: Empresa -> [(Proyecto, Int)]
+asignadosPorProyecto (ConsEmpresa rs) = asignadosPorCadaProyecto rs (proyectosSinRepetir 
+                                                                    (proyectosDeLosRoles rs))  
+
+asignadosPorCadaProyecto :: [Rol] -> [Proyecto] -> [(Proyecto, Int)]
+asignadosPorCadaProyecto _ [] = []
+asignadosPorCadaProyecto rs (p:ps) = (p, cantDeLosQueTrabajanEn [p] rs) : 
+                                                    asignadosPorCadaProyecto rs ps
+
+--------------------------------------------------------------------------------------------------------
