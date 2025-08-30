@@ -2,6 +2,7 @@
 {-# HLINT ignore "Use foldr" #-}
 {-# HLINT ignore "Use max" #-}
 {-# HLINT ignore "Use camelCase" #-}
+{-# HLINT ignore "Use min" #-}
 --- 1 ---
 --1)
 sumatoria :: [Int] -> Int
@@ -77,17 +78,19 @@ maxDelPar :: (Int,Int) -> Int
 maxDelPar (x,y) = if x > y then x else y
 
 zipMaximos :: [Int] -> [Int] -> [Int]
-zipMaximos [] [] = []
+zipMaximos [] ys = ys
+zipMaximos xs [] = xs
 zipMaximos (x:xs) (y:ys) = maxDelPar (x,y) : zipMaximos xs ys
 
 --15)
-minimo :: Ord a => a -> [a] -> a
-minimo m [] = m
-minimo m (x:xs) = if x < m then x else minimo m xs
+minimo :: Ord a => a -> a -> a
+minimo a b = if a < b 
+                  then a 
+                  else b
 
 elMinimo :: Ord a => [a] -> a
-elMinimo [] = error "No hay elementos"
-elMinimo (x:xs) = minimo x xs
+elMinimo [] = error "la lista no tiene minimo"
+elMinimo (x:xs) = minimo x (elMinimo xs)
 
 --- 2 ---
 
