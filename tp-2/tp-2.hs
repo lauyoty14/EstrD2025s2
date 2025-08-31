@@ -90,7 +90,9 @@ minimo a b = if a < b
 
 elMinimo :: Ord a => [a] -> a
 elMinimo [] = error "la lista no tiene minimo"
-elMinimo (x:xs) = minimo x (elMinimo xs)
+elMinimo (x:xs) = if null xs 
+                  then x
+                  else minimo x (elMinimo xs)
 
 --- 2 ---
 
