@@ -22,7 +22,7 @@ sacar :: Color -> Celda -> Celda
 sacar c1 CeldaVacia = CeldaVacia
 sacar c1 (Bolita c2 celda) = if sonColoresIguales c1 c2 
                              then CeldaVacia
-                             else sacar c1 celda
+                             else Bolita c2 (sacar c1 celda)
 
 sonColoresIguales :: Color -> Color -> Bool
 sonColoresIguales Azul Azul = True
@@ -110,7 +110,110 @@ cantidadDeTesorosEnElCofreDelCamino n (Cofre objetos camino) = cantidadDeTesoros
                                                                cantidadDeTesorosEnElCofreDelCamino (n-1) camino
 cantidadDeTesorosEnElCofreDelCamino n (Nada camino) = cantidadDeTesorosEnElCofreDelCamino (n-1) camino
 
-camino1 = Nada (Cofre [Cacharro] (Nada (Cofre [Tesoro] Fin)))
-camino2 = Cofre [Tesoro] Fin
-camino3 = Nada (Cofre [Tesoro,Tesoro] Fin)
-camino4 = Nada (Cofre [Tesoro] (Nada (Cofre [Tesoro] Fin)))
+---- 2. Tipos arbóreos ------
+-- 2.1. Árboles binarios
+data Tree a = EmptyT | NodeT a (Tree a) (Tree a) deriving (Show)
+
+sumarT :: Tree Int -> Int
+sumarT EmptyT = 0
+sumarT (NodeT x i d) = x + sumarT i + sumarT d
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+sizeT :: Tree a -> Int
+sizeT EmptyT = 0
+sizeT (NodeT _ i d) = 1 + sizeT i + sizeT d
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+mapDobleT :: Tree Int -> Tree Int
+mapDobleT EmptyT = EmptyT
+mapDobleT (NodeT x i d) = NodeT (2*x) (mapDobleT i) (mapDobleT d)
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+perteneceT :: Eq a => a -> Tree a -> Bool
+perteneceT x EmptyT = False 
+perteneceT x (NodeT y i d) = if x == y 
+                             then True
+                             else perteneceT x i || perteneceT x d
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+aparicionesT :: Eq a => a -> Tree a -> Int
+aparicionesT x EmptyT = 0
+aparicionesT x (NodeT y i d) = if x == y 
+                               then 1 + aparicionesT x i + aparicionesT x d
+                               else aparicionesT x i + aparicionesT x d
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+leaves :: Tree a -> [a]
+leaves EmptyT = []
+leaves (NodeT x EmptyT EmptyT) = [x]
+leaves (NodeT x i d) = leaves i ++ leaves d
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+heightT :: Tree a -> Int
+heightT EmptyT = 0
+heightT (NodeT _ i d) = 1 + maximoEntre (heightT i) (heightT d)
+
+maximoEntre :: Int -> Int -> Int
+maximoEntre a b = if a > b 
+                  then a 
+                  else b
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+mirrorT :: Tree a -> Tree a
+mirrorT EmptyT = EmptyT
+mirrorT (NodeT x i d) = NodeT x (mirrorT d) (mirrorT i)
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+toList :: Tree a -> [a]
+toList EmptyT = []
+toList (NodeT x EmptyT EmptyT) = [x]
+toList (NodeT x EmptyT d) = [x] ++ toList d
+toList (NodeT x i d) = toList i ++ [x] ++ toList d 
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+levelN :: Int -> Tree a -> [a]
+levelN n EmptyT = []
+levelN 0 (NodeT x i d) = [x]
+levelN n (NodeT x i d) = levelN (n-1) i ++ levelN (n-1) d
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+listPerLevel :: Tree a -> [[a]]
+listPerLevel t = listPerLevelDesde 0 t
+
+listPerLevelDesde :: Int -> Tree a -> [[a]]
+listPerLevelDesde n t = if esVacio (levelN n t)
+                        then []
+                        else (levelN n t) : listPerLevelDesde (n+1) t
+
+esVacio :: [a] -> Bool
+esVacio [] = True
+esVacio _  = False
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+ramaMasLarga :: Tree a -> [a]
+ramaMasLarga (NodeT x i d) = if heightT i > heightT d
+                             then leaves i
+                             else leaves d
+
+arbol1 :: Tree Int
+arbol1 = NodeT 1 (NodeT 2 arbol2 arbol4) (NodeT 3 EmptyT arbol3)
+
+arbol2 :: Tree Int
+arbol2 = NodeT 1 (NodeT 2 EmptyT EmptyT) (NodeT 3 EmptyT EmptyT)
+
+arbol3 :: Tree Int
+arbol3 = NodeT 1 (NodeT 2 EmptyT EmptyT) (NodeT 3 EmptyT EmptyT)
+
+arbol4 :: Tree Int
+arbol4 = NodeT 1 (NodeT 2 EmptyT EmptyT) (NodeT 3 EmptyT EmptyT)

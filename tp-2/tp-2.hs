@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+import Distribution.Simple.Program.Ar (createArLibArchive)
 {-# HLINT ignore "Use foldr" #-}
 {-# HLINT ignore "Use max" #-}
 {-# HLINT ignore "Use camelCase" #-}
 {-# HLINT ignore "Use min" #-}
+{-# HLINT ignore "Use foldl" #-}
 --- 1 ---
 --1)
 sumatoria :: [Int] -> Int
@@ -199,8 +201,8 @@ cuantosDeTipo_De_LeGananATodosLosDe_ t (ConsEntrenador _ ps) (ConsEntrenador _ p
 cantPokemonDe_LeGananATodosLosDe_ :: [Pokemon] -> [Pokemon] -> Int
 cantPokemonDe_LeGananATodosLosDe_ [] _ = 0
 cantPokemonDe_LeGananATodosLosDe_ (p:ps) ps2 = if leGanaATodosLosDe_ p ps2
-                                            then 1 + cantPokemonDe_LeGananATodosLosDe_ ps ps2
-                                            else cantPokemonDe_LeGananATodosLosDe_ ps ps2
+                                            then longitud ps + 1
+                                            else 0
 
 leGanaATodosLosDe_ :: Pokemon -> [Pokemon] -> Bool
 leGanaATodosLosDe_ p [] = True
@@ -217,9 +219,17 @@ esMaestroPokemon (ConsEntrenador _ ps) = tieneAlMenosUnPokemonDeCadaTipo ps
 
 tieneAlMenosUnPokemonDeCadaTipo :: [Pokemon] -> Bool
 tieneAlMenosUnPokemonDeCadaTipo [] = False
-tieneAlMenosUnPokemonDeCadaTipo ps = cantPokemonDeTipo Agua ps > 0 &&
-                                     cantPokemonDeTipo Fuego ps > 0 &&
-                                     cantPokemonDeTipo Planta ps > 0
+tieneAlMenosUnPokemonDeCadaTipo ps = tieneAlMenosUnoDe Fuego ps &&
+                                     tieneAlMenosUnoDe Agua ps &&
+                                     tieneAlMenosUnoDe Planta ps
+
+tieneAlMenosUnoDe :: TipoDePokemon -> [Pokemon] -> Bool
+tieneAlMenosUnoDe t (p:ps) = tipoEsIgualATipo t (tipoDePokemon p) ||
+                               tieneAlMenosUnoDe t ps
+tieneAlMenosUnoDe _ [] = False
+
+ash = ConsEntrenador "Ash" [ConsPokemon Fuego 1, ConsPokemon Fuego 2, ConsPokemon Planta 3]
+misty = ConsEntrenador "Misty" [ConsPokemon Planta 4, ConsPokemon Planta 5, ConsPokemon Planta 6]
 
 --------------------------------------------------------------------------------------------------------
 --3)
@@ -242,13 +252,16 @@ proyectosDeElRol (Management _ p) = [p]
 
 proyectosSinRepetir :: [Proyecto] -> [Proyecto]
 proyectosSinRepetir [] = []
-proyectosSinRepetir (x:xs) = if proyectoPerteneceAlaLista x xs
+proyectosSinRepetir (x:xs) = if proyectoPerteneceAlaLista x (proyectosSinRepetir xs)
                              then proyectosSinRepetir xs
                              else x : proyectosSinRepetir xs
 
 proyectoPerteneceAlaLista :: Proyecto -> [Proyecto] -> Bool
 proyectoPerteneceAlaLista _ [] = False 
-proyectoPerteneceAlaLista p (ConsProyecto m : xs) = nombreDelProyecto p == m || proyectoPerteneceAlaLista p xs  
+proyectoPerteneceAlaLista m (p:ps) = proyecto_EsIgualA m p || proyectoPerteneceAlaLista m ps  
+
+proyecto_EsIgualA :: Proyecto -> Proyecto -> Bool
+proyecto_EsIgualA (ConsProyecto m) (ConsProyecto n) = m == n
 
 nombreDelProyecto :: Proyecto -> String
 nombreDelProyecto (ConsProyecto m) = m
@@ -260,13 +273,17 @@ losDevSenior (ConsEmpresa rs) ps = cantDevSeniorQueTrabajanEnLosProyectos rs ps
 
 cantDevSeniorQueTrabajanEnLosProyectos :: [Rol] -> [Proyecto] -> Int
 cantDevSeniorQueTrabajanEnLosProyectos [] _ = 0
-cantDevSeniorQueTrabajanEnLosProyectos (r:rs) ps = if esDevSenior r && trabajaEnAlgunoDeLosProyectos r ps
-                                     then 1 + cantDevSeniorQueTrabajanEnLosProyectos rs ps
-                                     else cantDevSeniorQueTrabajanEnLosProyectos rs ps
+cantDevSeniorQueTrabajanEnLosProyectos (r:rs) ps = 
+    let condicion = esDevSenior r && trabajaEnAlgunoDeLosProyectos r ps  in 
+                     unoSi condicion + cantDevSeniorQueTrabajanEnLosProyectos rs ps
 
 esDevSenior :: Rol -> Bool
-esDevSenior (Developer Senior _) = True
+esDevSenior (Developer s _) = esSenior s
 esDevSenior _ = False
+
+esSenior :: Seniority -> Bool
+esSenior Senior = True
+esSenior _ = False
 
 trabajaEnAlgunoDeLosProyectos :: Rol -> [Proyecto] -> Bool
 trabajaEnAlgunoDeLosProyectos (Developer _ p) ps = proyectoPerteneceAlaLista p ps
@@ -286,12 +303,20 @@ cantDeLosQueTrabajanEn ps (r:rs) = if trabajaEnAlgunoDeLosProyectos r ps
 --------------------------------------------------------------------------------------------------------
 
 asignadosPorProyecto :: Empresa -> [(Proyecto, Int)]
-asignadosPorProyecto (ConsEmpresa rs) = asignadosPorCadaProyecto rs (proyectosSinRepetir 
-                                                                    (proyectosDeLosRoles rs))  
+asignadosPorProyecto (ConsEmpresa rs) = asignadosPorCadaProyecto rs  
 
-asignadosPorCadaProyecto :: [Rol] -> [Proyecto] -> [(Proyecto, Int)]
-asignadosPorCadaProyecto _ [] = []
-asignadosPorCadaProyecto rs (p:ps) = (p, cantDeLosQueTrabajanEn [p] rs) : 
-                                                    asignadosPorCadaProyecto rs ps
+asignadosPorCadaProyecto :: [Rol] -> [(Proyecto, Int)]
+asignadosPorCadaProyecto [] = []
+asignadosPorCadaProyecto (r:rs) = agregarRol (proyectosDeElRol r) (asignadosPorCadaProyecto rs)
+
+agregarRol :: [Proyecto] -> [(Proyecto, Int)] -> [(Proyecto, Int)]
+agregarRol [] ap = ap
+agregarRol (p:ps) ap = agregarRol ps (agregarProyectoA p ap)
+
+agregarProyectoA :: Proyecto -> [(Proyecto, Int)] -> [(Proyecto, Int)]
+agregarProyectoA p ((pa,i) : ps) = if proyecto_EsIgualA p pa
+                                   then (p, i+1) : ps
+                                   else (pa,i) : agregarProyectoA p ps
+agregarProyectoA p [] = [(p,1)]
 
 --------------------------------------------------------------------------------------------------------
