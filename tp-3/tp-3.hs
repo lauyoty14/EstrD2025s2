@@ -3,6 +3,8 @@
 {-# HLINT ignore "Use max" #-}
 {-# HLINT ignore "Eta reduce" #-}
 {-# HLINT ignore "Use foldr" #-}
+{-# HLINT ignore "Use guards" #-}
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 data Color = Azul | Rojo deriving (Show)
 data Celda = Bolita Color Celda | CeldaVacia deriving (Show)
 
@@ -230,19 +232,24 @@ eval (Neg e1) = (-1) * eval e1
 
 simplificar :: ExpA -> ExpA
 simplificar (Valor x) = Valor x
-simplificar (Sum (Valor 0) x) = x
-simplificar (Sum x (Valor 0)) = x
-simplificar (Prod (Valor 0) x) = Valor 0
-simplificar (Prod x (Valor 0)) = Valor 0
-simplificar (Prod (Valor 1) x) = x
-simplificar (Prod x (Valor 1)) = x
-simplificar (Neg (Valor x)) = if 0 > x
-                      then Valor (-x)
-                      else Valor x
+simplificar (Sum e1 e2) = if eval e1 == 0 
+                          then e2
+                          else if eval e2 == 0 
+                          then e1
+                          else Sum e1 e2
+simplificar (Prod e1 e2) = if eval e1 == 0 || eval e2 == 0 
+                          then Valor 0
+                          else Prod e1 e2
+  
+simplificar (Prod e1 e2) = if eval e1 == 1 
+                           then e2
+                           else if eval e2 == 1 
+                           then e1
+                           else Prod e1 e2
 
-
-
-
+simplificar (Neg e) = if 0 > eval e 
+                      then Neg (Neg e)
+                      else Neg e
 
 
 -- ejemplos --
