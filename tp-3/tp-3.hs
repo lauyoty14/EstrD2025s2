@@ -1,9 +1,14 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use :" #-}
+{-# HLINT ignore "Use max" #-}
+{-# HLINT ignore "Eta reduce" #-}
+{-# HLINT ignore "Use foldr" #-}
 data Color = Azul | Rojo deriving (Show)
 data Celda = Bolita Color Celda | CeldaVacia deriving (Show)
 
 -- Ejercicio 1: 
 -- 1.1
-nroBolitas :: Color -> Celda -> Int 
+nroBolitas :: Color -> Celda -> Int
 nroBolitas _ CeldaVacia = 0
 nroBolitas c1 (Bolita c2 celda) = unoSiSonElMismoColor c1 c2 + nroBolitas c1 celda
 
@@ -16,11 +21,11 @@ unoSiSonElMismoColor _ _ = 0
 
 poner :: Color -> Celda -> Celda
 poner c CeldaVacia = Bolita c CeldaVacia
-poner c1 (Bolita c2 celda) = Bolita c2 (Bolita c1 CeldaVacia)
+poner c1 (Bolita c2 celda) = Bolita c1 (Bolita c2 CeldaVacia)
 
 sacar :: Color -> Celda -> Celda
 sacar c1 CeldaVacia = CeldaVacia
-sacar c1 (Bolita c2 celda) = if sonColoresIguales c1 c2 
+sacar c1 (Bolita c2 celda) = if sonColoresIguales c1 c2
                              then CeldaVacia
                              else Bolita c2 (sacar c1 celda)
 
@@ -43,15 +48,11 @@ data Camino = Fin | Cofre [Objeto] Camino | Nada Camino
 hayTesoro :: Camino -> Bool
 hayTesoro Fin = False
 hayTesoro (Nada camino) = hayTesoro camino
-hayTesoro (Cofre objetos camino) = if hayTesoroEnElCofre objetos 
-                                    then True
-                                    else hayTesoro camino
+hayTesoro (Cofre objetos camino) = hayTesoroEnElCofre objetos || hayTesoro camino
 
 hayTesoroEnElCofre :: [Objeto] -> Bool
 hayTesoroEnElCofre [] = False
-hayTesoroEnElCofre (obj:objetos) = if esElObjeto Tesoro obj 
-                                    then True
-                                    else hayTesoroEnElCofre objetos
+hayTesoroEnElCofre (obj:objetos) = esElObjeto Tesoro obj || hayTesoroEnElCofre objetos
 
 esElObjeto :: Objeto -> Objeto -> Bool
 esElObjeto Cacharro Cacharro = True
@@ -62,8 +63,8 @@ esElObjeto _ _ = False
 pasosHastaTesoro :: Camino -> Int
 pasosHastaTesoro Fin = 0
 pasosHastaTesoro (Nada camino) = 1 + pasosHastaTesoro camino
-pasosHastaTesoro (Cofre objetos camino) = if hayTesoroEnElCofre objetos 
-                                          then 0 
+pasosHastaTesoro (Cofre objetos camino) = if hayTesoroEnElCofre objetos
+                                          then 0
                                           else 1 + pasosHastaTesoro camino
 
 -------------------------------------------------------------------------------------------------------
@@ -80,33 +81,33 @@ hayTesoroEn n (Nada camino) = hayTesoroEn (n-1) camino
 alMenosNTesoros :: Int -> Camino -> Bool
 alMenosNTesoros 0 _ = True
 alMenosNTesoros _ Fin = False
-alMenosNTesoros n (Cofre objetos camino) = if hayTesoroEnElCofre objetos 
+alMenosNTesoros n (Cofre objetos camino) = if hayTesoroEnElCofre objetos
                                             then alMenosNTesoros (n- cantidadDeTesorosEnElCofre objetos) camino
                                             else alMenosNTesoros n camino
 alMenosNTesoros n (Nada camino) = alMenosNTesoros n camino
 
 cantidadDeTesorosEnElCofre :: [Objeto] -> Int
-cantidadDeTesorosEnElCofre [] = 0  
-cantidadDeTesorosEnElCofre (obj:objetos) = if esElObjeto Tesoro obj 
+cantidadDeTesorosEnElCofre [] = 0
+cantidadDeTesorosEnElCofre (obj:objetos) = if esElObjeto Tesoro obj
                                             then 1 + cantidadDeTesorosEnElCofre objetos
                                             else cantidadDeTesorosEnElCofre objetos
 
 -------------------------------------------------------------------------------------------------------
 -- Precondicion n <= m
 cantTesorosEntre :: Int -> Int -> Camino -> Int
-cantTesorosEntre _ _ Fin = 0 
+cantTesorosEntre _ _ Fin = 0
 cantTesorosEntre 0 m camino = cantidadDeTesorosEnElCofreDelCamino m camino
-cantTesorosEntre n m (Nada camino) = if n > 0 
+cantTesorosEntre n m (Nada camino) = if n > 0
                                       then cantTesorosEntre (n-1) (m-1) camino
                                       else cantTesorosEntre n (m-1) camino
-cantTesorosEntre n m (Cofre objetos camino) = if n > 0 
+cantTesorosEntre n m (Cofre objetos camino) = if n > 0
                                               then cantTesorosEntre (n-1) (m-1) camino
                                               else cantidadDeTesorosEnElCofre objetos + cantTesorosEntre n (m-1) camino
 
 cantidadDeTesorosEnElCofreDelCamino :: Int -> Camino -> Int
 cantidadDeTesorosEnElCofreDelCamino 0 (Cofre objetos _) = cantidadDeTesorosEnElCofre objetos
 cantidadDeTesorosEnElCofreDelCamino 0 (Nada _) = 0
-cantidadDeTesorosEnElCofreDelCamino n (Cofre objetos camino) = cantidadDeTesorosEnElCofre objetos + 
+cantidadDeTesorosEnElCofreDelCamino n (Cofre objetos camino) = cantidadDeTesorosEnElCofre objetos +
                                                                cantidadDeTesorosEnElCofreDelCamino (n-1) camino
 cantidadDeTesorosEnElCofreDelCamino n (Nada camino) = cantidadDeTesorosEnElCofreDelCamino (n-1) camino
 
@@ -133,16 +134,14 @@ mapDobleT (NodeT x i d) = NodeT (2*x) (mapDobleT i) (mapDobleT d)
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
 perteneceT :: Eq a => a -> Tree a -> Bool
-perteneceT x EmptyT = False 
-perteneceT x (NodeT y i d) = if x == y 
-                             then True
-                             else perteneceT x i || perteneceT x d
+perteneceT x EmptyT = False
+perteneceT x (NodeT y i d) = (x == y) || (perteneceT x i || perteneceT x d)
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
 aparicionesT :: Eq a => a -> Tree a -> Int
 aparicionesT x EmptyT = 0
-aparicionesT x (NodeT y i d) = if x == y 
+aparicionesT x (NodeT y i d) = if x == y
                                then 1 + aparicionesT x i + aparicionesT x d
                                else aparicionesT x i + aparicionesT x d
 
@@ -160,8 +159,8 @@ heightT EmptyT = 0
 heightT (NodeT _ i d) = 1 + maximoEntre (heightT i) (heightT d)
 
 maximoEntre :: Int -> Int -> Int
-maximoEntre a b = if a > b 
-                  then a 
+maximoEntre a b = if a > b
+                  then a
                   else b
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
@@ -176,7 +175,7 @@ toList :: Tree a -> [a]
 toList EmptyT = []
 toList (NodeT x EmptyT EmptyT) = [x]
 toList (NodeT x EmptyT d) = [x] ++ toList d
-toList (NodeT x i d) = toList i ++ [x] ++ toList d 
+toList (NodeT x i d) = toList i ++ [x] ++ toList d
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -193,7 +192,7 @@ listPerLevel t = listPerLevelDesde 0 t
 listPerLevelDesde :: Int -> Tree a -> [[a]]
 listPerLevelDesde n t = if esVacio (levelN n t)
                         then []
-                        else (levelN n t) : listPerLevelDesde (n+1) t
+                        else levelN n t : listPerLevelDesde (n+1) t
 
 esVacio :: [a] -> Bool
 esVacio [] = True
@@ -206,11 +205,52 @@ ramaMasLarga (NodeT x i d) = if heightT i > heightT d
                              then leaves i
                              else leaves d
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+todosLosCaminos :: Tree a -> [[a]]
+todosLosCaminos EmptyT = []
+todosLosCaminos (NodeT x i d) = [[x]] ++ antePoner x (todosLosCaminos i) ++ antePoner x (todosLosCaminos d)
+
+antePoner :: a -> [[a]] -> [[a]]
+antePoner _ [] = []
+antePoner x (y:ys) = (x:y) : antePoner x ys
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+data ExpA = Valor Int
+            | Sum ExpA ExpA
+            | Prod ExpA ExpA
+            | Neg ExpA deriving (Show)
+
+eval :: ExpA -> Int
+eval (Valor x) = x
+eval (Sum e1 e2) = eval e1 + eval e2
+eval (Prod e1 e2) = eval e1 * eval e2
+eval (Neg e1) = (-1) * eval e1
+
+simplificar :: ExpA -> ExpA
+simplificar (Valor x) = Valor x
+simplificar (Sum (Valor 0) x) = x
+simplificar (Sum x (Valor 0)) = x
+simplificar (Prod (Valor 0) x) = Valor 0
+simplificar (Prod x (Valor 0)) = Valor 0
+simplificar (Prod (Valor 1) x) = x
+simplificar (Prod x (Valor 1)) = x
+simplificar (Neg (Valor x)) = if 0 > x
+                      then Valor (-x)
+                      else Valor x
+
+
+
+
+
+
+-- ejemplos --
 arbol1 :: Tree Int
 arbol1 = NodeT 1 (NodeT 2 arbol2 arbol4) (NodeT 3 EmptyT arbol3)
 
 arbol2 :: Tree Int
-arbol2 = NodeT 1 (NodeT 2 EmptyT EmptyT) (NodeT 3 EmptyT EmptyT)
+arbol2 = NodeT 1 (NodeT 2 arbol3 EmptyT) (NodeT 3 EmptyT EmptyT)
 
 arbol3 :: Tree Int
 arbol3 = NodeT 1 (NodeT 2 EmptyT EmptyT) (NodeT 3 EmptyT EmptyT)
