@@ -40,7 +40,7 @@ sonColoresIguales _ _ = False
 
 ponerN :: Int -> Color -> Celda -> Celda
 ponerN 0 _ celda = celda
-ponerN n c celda = ponerN (n-1) c (poner c celda)
+ponerN n c celda = Bolita c (ponerN (n-1) c celda)
 
 -------------------------------------------------------------------------------------------------------
 -- 1.2
@@ -204,8 +204,12 @@ esVacio _  = False
 
 ramaMasLarga :: Tree a -> [a]
 ramaMasLarga (NodeT x i d) = if heightT i > heightT d
-                             then leaves i
-                             else leaves d
+                             then x : elementosDeLaRama i
+                             else x : elementosDeLaRama d
+
+elementosDeLaRama :: Tree a -> [a]
+elementosDeLaRama EmptyT = []
+elementosDeLaRama (NodeT x i d) = x : elementosDeLaRama i ++ elementosDeLaRama d
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -232,24 +236,25 @@ eval (Neg e1) = (-1) * eval e1
 
 simplificar :: ExpA -> ExpA
 simplificar (Valor x) = Valor x
-simplificar (Sum e1 e2) = if eval e1 == 0 
-                          then e2
-                          else if eval e2 == 0 
-                          then e1
-                          else Sum e1 e2
-simplificar (Prod e1 e2) = if eval e1 == 0 || eval e2 == 0 
-                          then Valor 0
-                          else Prod e1 e2
-  
-simplificar (Prod e1 e2) = if eval e1 == 1 
-                           then e2
-                           else if eval e2 == 1 
-                           then e1
-                           else Prod e1 e2
+simplificar (Sum x y) = simplificarSuma (simplificar x) (simplificar y)
+simplificar (Prod x y) = simplificarProd (simplificar x) (simplificar y)
+simplificar (Neg x) = simplificarNeg (simplificar x)
 
-simplificar (Neg e) = if 0 > eval e 
-                      then Neg (Neg e)
-                      else Neg e
+simplificarSuma :: ExpA -> ExpA -> ExpA
+simplificarSuma (Valor 0) y = y 
+simplificarSuma x (Valor 0) = x
+simplificarSuma x y = Sum x y
+
+simplificarProd :: ExpA -> ExpA -> ExpA
+simplificarProd (Valor 0) _ = Valor 0
+simplificarProd _ (Valor 0) = Valor 0
+simplificarProd (Valor 1) y = y
+simplificarProd y (Valor 1) = y
+simplificarProd x y = Prod x y
+
+simplificarNeg :: ExpA -> ExpA
+simplificarNeg (Neg x) = x
+simplificarNeg x = Neg x
 
 
 -- ejemplos --
