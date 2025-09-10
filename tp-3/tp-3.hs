@@ -203,7 +203,7 @@ esVacio _  = False
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
 ramaMasLarga :: Tree a -> [a]
-ramaMasLarga (NodeT x i d) = if heightT i > heightT d
+ramaMasLarga (NodeT x i d) = if (heightT i > heightT d)
                              then x : elementosDeLaRama i
                              else x : elementosDeLaRama d
 
