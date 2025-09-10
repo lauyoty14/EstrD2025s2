@@ -209,7 +209,7 @@ ramaMasLarga (NodeT x i d) = if heightT i > heightT d
 
 elementosDeLaRama :: Tree a -> [a]
 elementosDeLaRama EmptyT = []
-elementosDeLaRama (NodeT x i d) = x : elementosDeLaRama i ++ elementosDeLaRama d
+elementosDeLaRama (NodeT x i d) = [x] ++ elementosDeLaRama i ++ elementosDeLaRama d
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
