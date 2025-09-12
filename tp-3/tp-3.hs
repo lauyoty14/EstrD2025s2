@@ -5,6 +5,7 @@
 {-# HLINT ignore "Use foldr" #-}
 {-# HLINT ignore "Use guards" #-}
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+import Control.Concurrent.STM (lengthTBQueue)
 data Color = Azul | Rojo deriving (Show)
 data Celda = Bolita Color Celda | CeldaVacia deriving (Show)
 
@@ -23,12 +24,12 @@ unoSiSonElMismoColor _ _ = 0
 
 poner :: Color -> Celda -> Celda
 poner c CeldaVacia = Bolita c CeldaVacia
-poner c1 (Bolita c2 celda) = Bolita c1 (Bolita c2 CeldaVacia)
+poner c1 celda = Bolita c1 celda
 
 sacar :: Color -> Celda -> Celda
 sacar c1 CeldaVacia = CeldaVacia
 sacar c1 (Bolita c2 celda) = if sonColoresIguales c1 c2
-                             then CeldaVacia
+                             then celda
                              else Bolita c2 (sacar c1 celda)
 
 sonColoresIguales :: Color -> Color -> Bool
@@ -54,12 +55,11 @@ hayTesoro (Cofre objetos camino) = hayTesoroEnElCofre objetos || hayTesoro camin
 
 hayTesoroEnElCofre :: [Objeto] -> Bool
 hayTesoroEnElCofre [] = False
-hayTesoroEnElCofre (obj:objetos) = esElObjeto Tesoro obj || hayTesoroEnElCofre objetos
+hayTesoroEnElCofre (obj:objetos) = esTesoro obj || hayTesoroEnElCofre objetos
 
-esElObjeto :: Objeto -> Objeto -> Bool
-esElObjeto Cacharro Cacharro = True
-esElObjeto Tesoro Tesoro = True
-esElObjeto _ _ = False
+esTesoro :: Objeto -> Bool
+esTesoro Tesoro = True
+esTesoro _ = False
 -------------------------------------------------------------------------------------------------------
 
 pasosHastaTesoro :: Camino -> Int
@@ -83,14 +83,12 @@ hayTesoroEn n (Nada camino) = hayTesoroEn (n-1) camino
 alMenosNTesoros :: Int -> Camino -> Bool
 alMenosNTesoros 0 _ = True
 alMenosNTesoros _ Fin = False
-alMenosNTesoros n (Cofre objetos camino) = if hayTesoroEnElCofre objetos
-                                            then alMenosNTesoros (n- cantidadDeTesorosEnElCofre objetos) camino
-                                            else alMenosNTesoros n camino
+alMenosNTesoros n (Cofre objetos camino) = alMenosNTesoros (n- cantidadDeTesorosEnElCofre objetos) camino
 alMenosNTesoros n (Nada camino) = alMenosNTesoros n camino
 
 cantidadDeTesorosEnElCofre :: [Objeto] -> Int
 cantidadDeTesorosEnElCofre [] = 0
-cantidadDeTesorosEnElCofre (obj:objetos) = if esElObjeto Tesoro obj
+cantidadDeTesorosEnElCofre (obj:objetos) = if esTesoro obj
                                             then 1 + cantidadDeTesorosEnElCofre objetos
                                             else cantidadDeTesorosEnElCofre objetos
 
@@ -99,9 +97,7 @@ cantidadDeTesorosEnElCofre (obj:objetos) = if esElObjeto Tesoro obj
 cantTesorosEntre :: Int -> Int -> Camino -> Int
 cantTesorosEntre _ _ Fin = 0
 cantTesorosEntre 0 m camino = cantidadDeTesorosEnElCofreDelCamino m camino
-cantTesorosEntre n m (Nada camino) = if n > 0
-                                      then cantTesorosEntre (n-1) (m-1) camino
-                                      else cantTesorosEntre n (m-1) camino
+cantTesorosEntre n m (Nada camino) = cantTesorosEntre (n-1) (m-1) camino
 cantTesorosEntre n m (Cofre objetos camino) = if n > 0
                                               then cantTesorosEntre (n-1) (m-1) camino
                                               else cantidadDeTesorosEnElCofre objetos + cantTesorosEntre n (m-1) camino
@@ -112,6 +108,7 @@ cantidadDeTesorosEnElCofreDelCamino 0 (Nada _) = 0
 cantidadDeTesorosEnElCofreDelCamino n (Cofre objetos camino) = cantidadDeTesorosEnElCofre objetos +
                                                                cantidadDeTesorosEnElCofreDelCamino (n-1) camino
 cantidadDeTesorosEnElCofreDelCamino n (Nada camino) = cantidadDeTesorosEnElCofreDelCamino (n-1) camino
+cantidadDeTesorosEnElCofreDelCamino _ Fin = 0
 
 ---- 2. Tipos arbóreos ------
 -- 2.1. Árboles binarios
@@ -189,12 +186,13 @@ levelN n (NodeT x i d) = levelN (n-1) i ++ levelN (n-1) d
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
 listPerLevel :: Tree a -> [[a]]
-listPerLevel t = listPerLevelDesde 0 t
+listPerLevel (NodeT x ti td) = [[x]] ++ listaDeNivel (listPerLevel ti) (listPerLevel td)
+listPerLevel EmptyT = []
 
-listPerLevelDesde :: Int -> Tree a -> [[a]]
-listPerLevelDesde n t = if esVacio (levelN n t)
-                        then []
-                        else levelN n t : listPerLevelDesde (n+1) t
+listaDeNivel :: [[a]] -> [[a]] -> [[a]]
+listaDeNivel [] ys = ys
+listaDeNivel xs [] = xs
+listaDeNivel (x:xs) (y:ys) = (x ++ y) : listaDeNivel xs ys
 
 esVacio :: [a] -> Bool
 esVacio [] = True
@@ -203,13 +201,10 @@ esVacio _  = False
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
 ramaMasLarga :: Tree a -> [a]
-ramaMasLarga (NodeT x i d) = if (heightT i > heightT d)
-                             then x : elementosDeLaRama i
-                             else x : elementosDeLaRama d
-
-elementosDeLaRama :: Tree a -> [a]
-elementosDeLaRama EmptyT = []
-elementosDeLaRama (NodeT x i d) = [x] ++ elementosDeLaRama i ++ elementosDeLaRama d
+ramaMasLarga EmptyT = []
+ramaMasLarga (NodeT x i d) = if length (ramaMasLarga i) > length (ramaMasLarga d)
+                             then x : ramaMasLarga i
+                             else x : ramaMasLarga d
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -241,7 +236,7 @@ simplificar (Prod x y) = simplificarProd (simplificar x) (simplificar y)
 simplificar (Neg x) = simplificarNeg (simplificar x)
 
 simplificarSuma :: ExpA -> ExpA -> ExpA
-simplificarSuma (Valor 0) y = y 
+simplificarSuma (Valor 0) y = y
 simplificarSuma x (Valor 0) = x
 simplificarSuma x y = Sum x y
 
@@ -258,6 +253,15 @@ simplificarNeg x = Neg x
 
 
 -- ejemplos --
+bolita1 = Bolita Rojo CeldaVacia
+bolita2 = Bolita Azul bolita1 
+
+camino1 = Cofre [Tesoro] Fin
+camino2 = Nada camino1
+camino3 = Cofre [Cacharro] camino1
+camino4 = Cofre [Tesoro] (Nada (Cofre [Tesoro] Fin))
+
+
 arbol1 :: Tree Int
 arbol1 = NodeT 1 (NodeT 2 arbol2 arbol4) (NodeT 3 EmptyT arbol3)
 
