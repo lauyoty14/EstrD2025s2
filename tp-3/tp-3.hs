@@ -202,9 +202,12 @@ esVacio _  = False
 
 ramaMasLarga :: Tree a -> [a]
 ramaMasLarga EmptyT = []
-ramaMasLarga (NodeT x i d) = if length (ramaMasLarga i) > length (ramaMasLarga d)
-                             then x : ramaMasLarga i
-                             else x : ramaMasLarga d
+ramaMasLarga (NodeT x i d) = x : ramaMasLargaMasLargaEntre (ramaMasLarga i) (ramaMasLarga d)
+
+ramaMasLargaMasLargaEntre :: [a] -> [a] -> [a]
+ramaMasLargaMasLargaEntre xs ys = if length xs >= length ys
+                                  then xs
+                                  else ys
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
