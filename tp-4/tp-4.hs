@@ -2,6 +2,7 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 {-# HLINT ignore "Use guards" #-}
 {-# HLINT ignore "Use :" #-}
+{-# HLINT ignore "Use foldr" #-}
 data Pizza = Prepizza
     | Capa Ingrediente Pizza deriving (Show)
 data Ingrediente = Salsa
@@ -148,6 +149,230 @@ agregarDireccion :: Dir -> [[Dir]] -> [[Dir]]
 agregarDireccion _ [] = []
 agregarDireccion dir (x:xs) = (dir:x) : agregarDireccion dir xs
 
+-------------------------------------------------------------------------------------------------------
+
+data Componente = LanzaTorpedos | Motor Int | Almacen [Barril] deriving (Show)
+data Barril = Comida | Oxigeno | Torpedo | Combustible deriving (Show)
+data Sector = S SectorId [Componente] [Tripulante] deriving (Show)
+type SectorId = String
+type Tripulante = String
+data Tree a = EmptyT | NodeT a (Tree a) (Tree a) deriving (Show)
+data Nave = N (Tree Sector) deriving (Show)
+
+sectores :: Nave -> [SectorId]
+sectores (N tree) = sectoresDe tree
+
+sectoresDe :: Tree Sector -> [SectorId]
+sectoresDe EmptyT = []
+sectoresDe (NodeT s ti td) = sectorIdDe s : sectoresDe ti ++ sectoresDe td 
+
+sectorIdDe :: Sector -> SectorId
+sectorIdDe (S id _ _) = id
+
+-------------------------------------------------------------------------------------------------------
+
+poderDePropulsion :: Nave -> Int
+poderDePropulsion (N tree) = poderDePropulsionDe tree
+
+poderDePropulsionDe :: Tree Sector -> Int
+poderDePropulsionDe EmptyT = 0 
+poderDePropulsionDe (NodeT s ti td) = poderDePropulsionDelSector s + 
+                                     poderDePropulsionDe ti + 
+                                     poderDePropulsionDe td
+
+poderDePropulsionDelSector :: Sector -> Int
+poderDePropulsionDelSector (S _ componentes _) = poderDePropulsionDeComponentes componentes
+
+poderDePropulsionDeComponentes :: [Componente] -> Int
+poderDePropulsionDeComponentes [] = 0
+poderDePropulsionDeComponentes (c:cs) = poderDePropulsionDeComponente c + 
+                                      poderDePropulsionDeComponentes cs
+
+poderDePropulsionDeComponente :: Componente -> Int
+poderDePropulsionDeComponente (Motor n) = n
+poderDePropulsionDeComponente _ = 0
+
+--------------------------------------------------------------------------------------------------------
+
+barriles :: Nave -> [Barril]
+barriles (N tree) = barrilesDe tree
+
+barrilesDe :: Tree Sector -> [Barril]
+barrilesDe EmptyT = []
+barrilesDe (NodeT s ti td) = barrilesDelSector s ++ barrilesDe ti ++ barrilesDe td
+
+barrilesDelSector :: Sector -> [Barril]
+barrilesDelSector (S _ componentes _) = barrilesDeComponente componentes
+
+barrilesDeComponente :: [Componente] -> [Barril]
+barrilesDeComponente [] = []
+barrilesDeComponente (c:cs) = barrilesDeComponenteAux c ++ barrilesDeComponente cs
+
+barrilesDeComponenteAux :: Componente -> [Barril]
+barrilesDeComponenteAux (Almacen barriles) = barriles
+barrilesDeComponenteAux _ = []
+
+--------------------------------------------------------------------------------------------------------
+
+agregarASector :: [Componente] -> SectorId -> Nave -> Nave
+agregarASector nuevosComponentes idSector (N tree) = N (agregarASectorEnTree nuevosComponentes idSector tree)
+
+agregarASectorEnTree :: [Componente] -> SectorId -> Tree Sector -> Tree Sector
+agregarASectorEnTree _ _ EmptyT = EmptyT
+agregarASectorEnTree nuevosComponentes idSector (NodeT s ti td) = if sectorIdDe s == idSector
+                                                                   then NodeT (agregarComponentesASector nuevosComponentes s) ti td
+                                                                   else NodeT s (agregarASectorEnTree nuevosComponentes idSector ti)
+                                                                                (agregarASectorEnTree nuevosComponentes idSector td)
+
+agregarComponentesASector :: [Componente] -> Sector -> Sector
+agregarComponentesASector nuevosComponentes (S id componentes tripulantes) = S id (componentes ++ nuevosComponentes) tripulantes
+
+--------------------------------------------------------------------------------------------------------
+
+asignarTripulanteA :: Tripulante -> [SectorId] -> Nave -> Nave
+asignarTripulanteA tripulante ids (N tree) = N (asignarTripulanteATree tripulante ids tree)
+
+asignarTripulanteATree :: Tripulante -> [SectorId] -> Tree Sector -> Tree Sector
+asignarTripulanteATree _ _ EmptyT = EmptyT
+asignarTripulanteATree tripulante ids (NodeT s ti td) = if algunIdDelSectorEs ids s
+                                                        then NodeT (asignarTripulanteASector tripulante s) 
+                                                                    (asignarTripulanteATree tripulante ids ti) 
+                                                                    (asignarTripulanteATree tripulante ids td)
+                                                        else NodeT s (asignarTripulanteATree tripulante ids ti) 
+                                                                    (asignarTripulanteATree tripulante ids td)
+
+asignarTripulanteASector :: Tripulante -> Sector -> Sector
+asignarTripulanteASector tripulante (S id componentes tripulantes) = S id componentes (tripulante:tripulantes)
+
+algunIdDelSectorEs :: [SectorId] -> Sector -> Bool
+algunIdDelSectorEs (id:ids) sector = sectorIdDe sector == id || algunIdDelSectorEs ids sector
+algunIdDelSectorEs [] _ = False
+
+--------------------------------------------------------------------------------------------------------
+
+sectoresAsignados :: Tripulante -> Nave -> [SectorId]
+sectoresAsignados tripulante (N tree) = sectoresAsignadosEnTree tripulante tree
+
+sectoresAsignadosEnTree :: Tripulante -> Tree Sector -> [SectorId]
+sectoresAsignadosEnTree _ EmptyT = []
+sectoresAsignadosEnTree tripulante (NodeT s ti td) = if tripulanteEnSector tripulante s
+                                                     then sectorIdDe s : sectoresAsignadosEnTree tripulante ti ++
+                                                                      sectoresAsignadosEnTree tripulante td
+                                                     else sectoresAsignadosEnTree tripulante ti ++
+                                                          sectoresAsignadosEnTree tripulante td
+
+tripulanteEnSector :: Tripulante -> Sector -> Bool
+tripulanteEnSector tripulante (S _ _ tripulantes) = tripulanteEsEnLista tripulante tripulantes
+
+tripulanteEsEnLista :: Tripulante -> [Tripulante] -> Bool
+tripulanteEsEnLista tripulante (t:ts) = tripulante == t || tripulanteEsEnLista tripulante ts
+tripulanteEsEnLista _ [] = False
+
+--------------------------------------------------------------------------------------------------------
+
+tripulantes :: Nave -> [Tripulante]
+tripulantes (N tree) = tripulantesEnTree tree
+
+tripulantesEnTree :: Tree Sector -> [Tripulante]
+tripulantesEnTree EmptyT = []
+tripulantesEnTree (NodeT s ti td) = tripulantesDelSector s ++ tripulantesEnTree ti ++ tripulantesEnTree td
+
+tripulantesDelSector :: Sector -> [Tripulante]
+tripulantesDelSector (S _ _ tripulantes) = tripulantes
+
+--------------------------------------------------------------------------------------------------------
+
+type Presa = String -- nombre de presa
+type Territorio = String -- nombre de territorio
+type Nombre = String -- nombre de lobo
+data Lobo = Cazador Nombre [Presa] Lobo Lobo Lobo
+            | Explorador Nombre [Territorio] Lobo Lobo
+            | Cría Nombre
+data Manada = M Lobo
+
+cazador1 :: Lobo
+cazador1 = Cazador "hunter" ["conejo"] explorador1 explorador2 cazador2
+cazador2 :: Lobo
+cazador2 = Cazador "hunter2" ["zorro", "ardilla"] (Cría "cria5") (Cría "cria6") (Cría "cria7")
+explorador1 :: Lobo
+explorador1 = Explorador "explorer1" ["territorio1", "territorio2"] (Cría "cria1") (Cría "cria2")
+explorador2 :: Lobo
+explorador2 = Explorador "explorer2" ["territorio3", "territorio4"] (Cría "cria3") (Cría "cria4")
+manada :: Manada
+manada = M cazador1
+
+buenaCaza :: Manada -> Bool
+buenaCaza (M lobo) = totalDePresas lobo > totalDeCriasDe lobo
+
+totalDePresas :: Lobo -> Int
+totalDePresas (Cría _) = 0
+totalDePresas (Explorador _ _ lobo1 lobo2) = totalDePresas lobo1 + totalDePresas lobo2
+totalDePresas (Cazador _ presas lobo1 lobo2 lobo3) = length presas + totalDePresas lobo1 +
+                                                    totalDePresas lobo2 + totalDePresas lobo3
+
+totalDeCriasDe :: Lobo -> Int
+totalDeCriasDe (Cría _) = 1
+totalDeCriasDe (Explorador _ _ lobo1 lobo2) = totalDeCriasDe lobo1 + totalDeCriasDe lobo2
+totalDeCriasDe (Cazador _ _ lobo1 lobo2 lobo3) = totalDeCriasDe lobo1 + totalDeCriasDe lobo2 +
+                                              totalDeCriasDe lobo3
+
+--------------------------------------------------------------------------------------------------------
+
+elAlfa :: Manada -> (Nombre, Int)
+elAlfa (M lobo) = elAlfaDe lobo
+
+elAlfaDe :: Lobo -> (Nombre, Int)
+elAlfaDe (Cría nombre) = (nombre, 0)
+elAlfaDe (Explorador nombre _ lobo1 lobo2) = elAlfaMayor (nombre, 0) (elAlfaMayor (elAlfaDe lobo1) (elAlfaDe lobo2))
+elAlfaDe (Cazador nombre presas lobo1 lobo2 lobo3) = elAlfaMayor (elAlfaMayor (nombre, length presas) (elAlfaDe lobo1))
+                                                        (elAlfaMayor (elAlfaDe lobo2) (elAlfaDe lobo3))
+
+elAlfaMayor :: (Nombre, Int) -> (Nombre, Int) -> (Nombre, Int)
+elAlfaMayor (nombre1, presas1) (nombre2, presas2) = if presas1 >= presas2
+                                 then (nombre1, presas1)
+                                 else (nombre2, presas2)
+
+--------------------------------------------------------------------------------------------------------
+
+losQueExploraron :: Territorio -> Manada -> [Nombre]
+losQueExploraron territorio (M lobo) = losQueExploraronEl territorio lobo
+
+losQueExploraronEl :: Territorio -> Lobo -> [Nombre]
+losQueExploraronEl _ (Cría _) = []
+losQueExploraronEl territorio (Explorador nombre territorios lobo1 lobo2) = if pertenece territorio territorios
+                                    then nombre : (losQueExploraronEl territorio lobo1 ++ losQueExploraronEl territorio lobo2)
+                                    else losQueExploraronEl territorio lobo1 ++ losQueExploraronEl territorio lobo2
+losQueExploraronEl territorio (Cazador _ _ lobo1 lobo2 lobo3) = losQueExploraronEl territorio lobo1 ++
+                                                                losQueExploraronEl territorio lobo2 ++
+                                                                losQueExploraronEl territorio lobo3
+
+pertenece :: Eq a => a -> [a] -> Bool
+pertenece _ [] = False
+pertenece x (y:ys) = x == y || pertenece x ys
+
+--------------------------------------------------------------------------------------------------------
+
+exploradoresPorTerritorio :: Manada -> [(Territorio, [Nombre])]
+exploradoresPorTerritorio (M lobo) = exploradoresPorTerritorioDe lobo
+
+exploradoresPorTerritorioDe :: Lobo -> [(Territorio, [Nombre])]
+exploradoresPorTerritorioDe (Cría _) = []
+exploradoresPorTerritorioDe (Explorador nombre territorios lobo1 lobo2) = tuplasSinRepetir ((exploradoresEnCadaTerritorio nombre territorios ++
+                                                                          exploradoresPorTerritorioDe lobo1) ++
+                                                                          exploradoresPorTerritorioDe lobo2) 
+exploradoresPorTerritorioDe (Cazador _ _ lobo1 lobo2 lobo3) = exploradoresPorTerritorioDe lobo1 ++
+                                                              exploradoresPorTerritorioDe lobo2 ++
+                                                              exploradoresPorTerritorioDe lobo3
+
+exploradoresEnCadaTerritorio :: Nombre -> [Territorio] -> [(Territorio, [Nombre])]
+exploradoresEnCadaTerritorio _ [] = []
+exploradoresEnCadaTerritorio nombre (t:ts) = (t, [nombre]) : exploradoresEnCadaTerritorio nombre ts
+
+--------------------------------------------------------------------------------------------------------
+
+
+
+
 
 -- Ejemplos de objetos---------------------------------------------------------------------------------
 objeto1 :: Objeto
@@ -184,3 +409,43 @@ mapaGrande = Bifurcacion cofreVacio
                 (Bifurcacion cofreConChatarra (Fin cofreConTesoro)
                 (Bifurcacion cofreConTesoro (Fin cofreConChatarra) (Fin cofreConTesoro)))
                 (Fin cofreConChatarra)
+
+-- ejemplos de naves ------
+naveVacia :: Nave
+naveVacia = N EmptyT
+
+naveConSectores :: Nave
+naveConSectores = N (NodeT (S "A1" [LanzaTorpedos] ["Alice"]) 
+                        (NodeT (S "B2" [Motor 5, Almacen [Comida, Oxigeno]] ["Bob", "Charlie"]) 
+                            EmptyT 
+                            (NodeT (S "C3" [Almacen [Torpedo, Combustible]] ["David"]) EmptyT EmptyT))
+                        (NodeT (S "D4" [Motor 10] ["Eve"]) EmptyT EmptyT))
+
+naveCompleta :: Nave
+naveCompleta = N (NodeT (S "Central" [LanzaTorpedos, Motor 20] ["Captain"])
+                    (NodeT (S "Engineering" [Motor 15, Almacen [Combustible, Oxigeno]] ["Engineer1", "Engineer2"])
+                        (NodeT (S "Storage" [Almacen [Comida, Comida, Torpedo]] ["Loader"]) EmptyT EmptyT)
+                        (NodeT (S "Crew Quarters" [Almacen [Oxigeno]] ["Crew1", "Crew2"]) EmptyT EmptyT))
+                    (NodeT (S "Bridge" [LanzaTorpedos] ["Pilot"])
+                        EmptyT
+                        (NodeT (S "Observation" [Almacen [Comida]] ["Observer"]) EmptyT EmptyT)))
+
+-- Ejemplos de lobos
+lobo1 :: Lobo
+lobo1 = Cría "Luna"
+
+lobo2 :: Lobo
+lobo2 = Cría "Niebla"
+
+lobo3 :: Lobo
+lobo3 = Explorador "Rastro" ["Bosque del Norte", "Cueva Helada"] lobo1 lobo2
+
+lobo4 :: Lobo
+lobo4 = Cría "Sombra"
+
+lobo5 :: Lobo
+lobo5 = Cazador "Colmillo" ["Liebre", "Ciervo"] lobo3 lobo4 lobo2
+
+-- Ejemplo de manada
+manada1 :: Manada
+manada1 = M lobo5
