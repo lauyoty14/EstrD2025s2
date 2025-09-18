@@ -295,7 +295,7 @@ cazador1 = Cazador "hunter" ["conejo"] explorador1 explorador2 cazador2
 cazador2 :: Lobo
 cazador2 = Cazador "hunter2" ["zorro", "ardilla"] (Cría "cria5") (Cría "cria6") (Cría "cria7")
 explorador1 :: Lobo
-explorador1 = Explorador "explorer1" ["territorio1", "territorio2"] (Cría "cria1") (Cría "cria2")
+explorador1 = Explorador "explorer1" ["territorio1", "territorio2", "territorio3"] (Cría "cria1") (Cría "cria2")
 explorador2 :: Lobo
 explorador2 = Explorador "explorer2" ["territorio3", "territorio4"] (Cría "cria3") (Cría "cria4")
 manada :: Manada
@@ -353,23 +353,52 @@ pertenece x (y:ys) = x == y || pertenece x ys
 --------------------------------------------------------------------------------------------------------
 
 exploradoresPorTerritorio :: Manada -> [(Territorio, [Nombre])]
-exploradoresPorTerritorio (M lobo) = exploradoresPorTerritorioDe lobo
+exploradoresPorTerritorio (M lobo) = juntar (exploradoresPorTerritorioDe lobo) []
 
 exploradoresPorTerritorioDe :: Lobo -> [(Territorio, [Nombre])]
 exploradoresPorTerritorioDe (Cría _) = []
-exploradoresPorTerritorioDe (Explorador nombre territorios lobo1 lobo2) = tuplasSinRepetir ((exploradoresEnCadaTerritorio nombre territorios ++
-                                                                          exploradoresPorTerritorioDe lobo1) ++
-                                                                          exploradoresPorTerritorioDe lobo2) 
-exploradoresPorTerritorioDe (Cazador _ _ lobo1 lobo2 lobo3) = exploradoresPorTerritorioDe lobo1 ++
-                                                              exploradoresPorTerritorioDe lobo2 ++
-                                                              exploradoresPorTerritorioDe lobo3
+exploradoresPorTerritorioDe (Explorador nombre territorios l1 l2) = combinarTerritorios territorios nombre
+                                                                    ++ exploradoresPorTerritorioDe l1
+                                                                    ++ exploradoresPorTerritorioDe l2
+exploradoresPorTerritorioDe (Cazador _ _ l1 l2 l3) = exploradoresPorTerritorioDe l1
+                                                    ++ exploradoresPorTerritorioDe l2
+                                                    ++ exploradoresPorTerritorioDe l3
 
-exploradoresEnCadaTerritorio :: Nombre -> [Territorio] -> [(Territorio, [Nombre])]
-exploradoresEnCadaTerritorio _ [] = []
-exploradoresEnCadaTerritorio nombre (t:ts) = (t, [nombre]) : exploradoresEnCadaTerritorio nombre ts
+combinarTerritorios :: [Territorio] -> Nombre -> [(Territorio, [Nombre])]
+combinarTerritorios [] _ = []
+combinarTerritorios (t:ts) n = (t, [n]) : combinarTerritorios ts n
+
+-- inserta cada par en la lista acumulada
+juntar :: [(Territorio, [Nombre])] -> [(Territorio, [Nombre])] -> [(Territorio, [Nombre])]
+juntar [] acumulado = acumulado
+juntar ((t,ns):xs) acumulado = juntar xs (insertar t ns acumulado)
+
+-- si el territorio ya está, agrega los nombres, sino lo crea
+insertar :: Territorio -> [Nombre] -> [(Territorio, [Nombre])] -> [(Territorio, [Nombre])]
+insertar t ns [] = [(t,ns)]
+insertar t ns ((t2,ns2):resto) = if t == t2
+                               then (t2, ns2 ++ ns) : resto
+                               else (t2, ns2) : insertar t ns resto
 
 --------------------------------------------------------------------------------------------------------
 
+cazadoresSuperioresDe :: Nombre -> Manada -> [Nombre]
+cazadoresSuperioresDe nombre (M lobo) = superiores nombre lobo
+
+superiores :: Nombre -> Lobo -> [Nombre]
+superiores _ (Cría _) = []
+superiores buscado (Explorador _ _ l1 l2) = superiores buscado l1 ++ superiores buscado l2
+superiores buscado (Cazador nombre _ l1 l2 l3) = if contiene buscado l1 || contiene buscado l2 || contiene buscado l3
+                                                then nombre : (superiores buscado l1 ++ superiores buscado l2 ++ superiores buscado l3)
+                                                else superiores buscado l1 ++ superiores buscado l2 ++ superiores buscado l3
+-- dice si un lobo está en este subárbol
+contiene :: Nombre -> Lobo -> Bool
+contiene n (Cría nombre) = n == nombre
+contiene n (Explorador nombre _ l1 l2) = n == nombre || contiene n l1 || contiene n l2
+contiene n (Cazador nombre _ l1 l2 l3) = n == nombre || contiene n l1 || contiene n l2 || contiene n l3
+
+
+--------------------------------------------------------------------------------------------------------
 
 
 
