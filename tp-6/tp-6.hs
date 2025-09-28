@@ -1,4 +1,5 @@
 import PriorityQueue
+import Distribution.Simple (VersionInterval)
 
 heapSort :: Ord a => [a] -> [a]
 heapSort xs = pqToList (listToPQ xs)
@@ -174,14 +175,100 @@ emptyM = Map []
 -- Propósito: devuelve un map vacío
 
 assocM :: Eq k => k -> v -> Map k v -> Map k v
-assocM 
+assocM k v (Map kv) = Map ((k,v) : kv)
 -- Propósito: agrega una asociación clave-valor al map.
 
 lookupM :: Eq k => k -> Map k v -> Maybe v
+lookupM k (Map []) = Nothing
+lookupM k (Map kv) = valorDeLaClaveEn k kv
 -- Propósito: encuentra un valor dado una clave.
 
+valorDeLaClaveEn :: Eq k => k -> [(k, v)] -> Maybe v
+valorDeLaClaveEn k (kv:kvs) = if claveEstaEn k kv
+                              then valorDe kv
+                              else valorDeLaClaveEn k kvs
+
 deleteM :: Eq k => k -> Map k v -> Map k v
+deleteM k (Map kv) = if laClavePertenece k kv
+                     then Map (sacarAsociacionDeClave k kv)
+                     else Map kv
 -- Propósito: borra una asociación dada una clave.
 
+sacarAsociacionDeClave :: Eq k => k -> [(k, v)] -> [(k, v)]
+sacarAsociacionDeClave _ [] = []
+sacarAsociacionDeClave k (kv:kvs) = if claveEstaEn k kv
+                                    then kvs 
+                                    else kv : sacarAsociacionDeClave k kvs
+
 keys :: Map k v -> [k]
+keys (Map kvs) = clavesDe kvs
 -- Propósito: devuelve las claves del map.
+
+clavesDe :: [(k, v)] -> [k]
+clavesDe [] = []
+clavesDe (kv:kvs) = (claveDe kv) : clavesDe kvs
+
+claveDe :: Eq k => (k, v) -> k
+claveDe (k, _) = k
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+-- 3)
+data Map k v = Map [k] [v]
+
+emptyM :: Map k v
+emptyM = Map [] []
+-- Propósito: devuelve un map vacío
+
+assocM :: Eq k => k -> v -> Map k v -> Map k v
+assocM k v (Map ks vs) = Map (k:ks) (v:vs) 
+-- Propósito: agrega una asociación clave-valor al map.
+-- O(1) --
+
+lookupM :: Eq k => k -> Map k v -> Maybe v
+lookupM k (Map [] _) = Nothing
+lookupM k (Map ks vs) = if primeroDe ks == k
+                        then Just (primeroDe vs) 
+                        else lookupM k (Map (sinElPrimero ks) (sinElPrimero vs))
+-- Propósito: encuentra un valor dado una clave.
+-- O(n) donde n es el tamaño de la lista de llaves
+
+primeroDe :: [x] -> x 
+primeroDe [] = error "no se puede dar el primero de una lista vacia"
+primeroDe (x:_) = x
+
+sinElPrimero :: [x] -> [x]
+sinElPrimero [] = []
+sinElPrimero (x:xs) = xs 
+
+deleteM :: Eq k => k -> Map k v -> Map k v
+deleteM k (Map ks vs) = if primeroDe ks == k
+                        then Map (sinElPrimero ks) (sinElPrimero vs)
+                        else case deleteM k (sinElPrimero ks) (sinElPrimero vs) of 
+                            Map ks' vs' -> Map (primeroDe ks : ks') (primeroDe vs : vs')
+-- Propósito: borra una asociación dada una clave.
+-- O(n) donde n es el tamaño de la lista de llaves
+
+keys :: Map k v -> [k]
+keys (Map ks vs) = ks
+-- Propósito: devuelve las claves del map.
+-- O(1) --
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+indexar :: [a] -> Map Int a
+indexar xs = indexarDesde 0 xs
+-- Propósito: dada una lista de elementos construye un map que relaciona cada elemento con
+-- su posición en la lista.
+
+indexarDesde :: Int -> [a] -> Map Int a
+indexarDesde _ []     = emptyM
+indexarDesde n (x:xs) = assocM n x (indexarDesde (n+1) xs)
+
+ocurrencias :: String -> Map Char Int
+ocurrencias []     = emptyM
+ocurrencias (c:cs) =
+    case lookupM c (ocurrencias cs) of
+        Just n  -> assocM c (n+1) (ocurrencias cs)
+        Nothing -> assocM c 1     (ocurrencias cs)
+
