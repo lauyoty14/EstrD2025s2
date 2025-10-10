@@ -231,7 +231,7 @@ agregarASector si cuil (ConsE mapS mapE) = ConsE mapS (assocM cuil (incorporarSe
 borrarEmpleado :: CUIL -> Empresa -> Empresa
 borrarEmpleado cuil (ConsE mapS mapE) = ConsE (sacarEmpleadoDeLosSectoresEn cuil (keys mapS) mapS) (deleteM cuil mapE)
 -- Propósito: elimina al empleado que posee dicho CUIL.
--- Costo: O(S + S*(log S + (E log E)) + log E) donde E es la cantidad de empleados del map
+-- Costo: O(S (log S + N log N) + log E) donde E es la cantidad de empleados del map
 
 sacarEmpleadoDeLosSectoresEn :: CUIL -> [SectorId] -> Map SectorId (Set Empleado) -> Map SectorId (Set Empleado)
 sacarEmpleadoDeLosSectoresEn _ [] mapS = mapS
@@ -265,3 +265,56 @@ filtrarEmpleados cuilBuscado (emp:emps) = if cuilBuscado == (cuil emp)
                                    then filtrarEmpleados cuilBuscado emps
                                    else emp : filtrarEmpleados cuilBuscado emps
 -- costo O(N) donde N es la cantidad de empleados en la lista
+
+----------------------------------------------------------------------------------------------------------------------------------------
+-- ejercicio 5 
+
+comenzarCon :: [SectorId] -> [CUIL] -> Empresa
+comenzarCon [] [] = consEmpresa
+comenzarCon sectores cuils = 
+  let emp = agregarSectores sectores consEmpresa
+  in agregarEmpleadosSinSectores cuils emp 
+-- Propósito: construye una empresa con la información de empleados dada. 
+-- Los sectores no tienen empleados.
+-- Costo: O(S log s + C log C) 
+
+agregarSectores :: [SectorId] -> Empresa -> Empresa
+agregarSectores [] emp = emp
+agregarSectores (s:ss) emp = agregarSectores ss (agregarSector s emp) 
+-- Costo : O(S log S) donde S es la cantidad de sectores id de la lista
+
+agregarEmpleadosSinSectores  :: [CUIL] -> Empresa -> Empresa
+agregarEmpleadosSinSectores  mpleados [] emp = emp
+agregarEmpleadosSinSectores  (c:cs) emp = agregarEmpleadosSinSectores  cs (agregarEmpleado [] c emp)
+-- Costo : O(C log C) donde C es la cantidad de CUIL de la lista
+
+recorteDePersonal :: Empresa -> Empresa
+recorteDePersonal emp = borrarLaMitadDeEmpleados (todosLosCUIL emp) (size (todosLosCUIL emp) div 2) emp
+-- Propósito: dada una empresa elimina a la mitad de sus empleados (sin importar a quiénes).
+-- Costo: O(E * (S (log S + N log N) + log E))
+--  * todosLosCUIL : O(E)
+--  * size : O(E)
+--  * borrarLaMitadDeEmpleados : O(E/2 * costo(borrarEmpleado))
+--  * borrarEmpleado : O(S (log S + log N) + log E)
+
+borrarLaMitadDeEmpleados :: [CUIL] -> Int -> Empresa -> Empresa
+borrarLaMitadDeEmpleados _ 0 emp = emp
+borrarLaMitadDeEmpleados (c:cs) x emp = borrarLaMitadDeEmpleados cs (x - 1) (borrarEmpleado c emp)  
+-- Costo : O(x * costo(borrarEmpleado))
+--  * borrarEmpleado : O(S + S*(log S + (E log E)) + log E)
+
+convertirEnComodin :: CUIL -> Empresa -> Empresa
+converitrEnComodin cuil emp = agregarEmpleado (todosLosSectores emp) cuil emp
+-- Propósito: dado un CUIL de empleado le asigna todos los sectores de la empresa.
+-- Costo: O(S∗(logS+logE))
+--  *todosLosSectores : O(S)
+--  *agregarEmpleado : O(S (log S + log K + log N) + log E)
+
+esComodin :: CUIL -> Empresa -> Bool
+esComodin cuil emp = size (todosLosSectores emp) == size (sectores (buscarPorCUIL cuil emp)) 
+-- Propósito: dado un CUIL de empleado indica si el empleado está en todos 
+-- los sectores.
+-- Costo: O(S + log E)
+--  *todosLosSectores : O(S)
+--  *buscarPorCUIL : O(log E)
+--  *sectores O(S)
