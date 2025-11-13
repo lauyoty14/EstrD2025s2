@@ -11,6 +11,7 @@ struct LinkedListSt {
     // desde primero por siguiente hasta alcanzar a NULL
     int cantidad; // cantidad de elementos
     NodoL* primero; // puntero al primer nodo
+    NodoL* ultimo;
 };
 
 typedef LinkedListSt* LinkedList; // INV.REP.: el puntero NO es NULL

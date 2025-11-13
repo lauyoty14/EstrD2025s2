@@ -124,3 +124,21 @@ void DestroyL(LinkedList xs){
 }
 //Libera la memoria ocupada por la lista.
 // Costo: O(n) siendo n la cantidad de elementos de la lista
+
+void Append(LinkedList xs, LinkedList ys){
+    if (ys->primero == NULL) { return;}
+
+    if(xs->primero == NULL) {
+        xs->primero = ys->primero;
+        xs->ultimo = ys->ultimo;
+    } else {
+        xs->ultimo->siguiente = ys->primero;
+        xs->ultimo = ys->ultimo;
+    }
+
+    xs->cantidad += ys->cantidad;
+
+    delete(ys);
+}
+//Agrega todos los elementos de la segunda lista al final de los de la primera.
+//La segunda lista se destruye.

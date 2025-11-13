@@ -108,3 +108,4 @@ void Append(LinkedList xs, LinkedList ys){
 //La segunda lista se destruye.
 //Nota: notar que el costo mejoraría si Snoc fuese O(1), ¾cómo podría serlo?
 // Costo: O(n * m) si Snoc es O(n); O(n + m) si Snoc es O(1)
+
